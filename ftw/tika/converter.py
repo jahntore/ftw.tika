@@ -7,7 +7,8 @@ from ftw.tika.utils import clean_extracted_plaintext
 from ftw.tika.utils import run_process
 from plone.memoize import instance
 from requests.exceptions import RequestException
-from StringIO import StringIO
+# from StringIO import StringIO
+from io import StringIO
 from threading import local
 from zope.component import queryUtility
 import logging
@@ -15,6 +16,11 @@ import os
 import requests
 import socket
 import tempfile
+
+try:
+    basestring
+except NameError:
+    basestring = str
 
 
 thread_locals = local()
@@ -101,14 +107,14 @@ class TikaConverter(object):
             try:
                 text = self.convert_server(document, filename)
 
-            except requests.exceptions.ConnectionError, exc:
+            except requests.exceptions.ConnectionError as exc:
                 # Could not connect to the server at all.
                 # Server is probably not running
                 self.log.error(
                     'Could not connect to tika server: %s' % str(exc))
                 text = self.convert_local(document, filename)
 
-            except (socket.error, RequestException), exc:
+            except (socket.error, RequestException) as exc:
                 # An error occured, maybe a connection timeout.
                 self.log.error(
                     'Full text extraction using tika failed: %s' % str(exc))
@@ -142,7 +148,7 @@ class TikaConverter(object):
             raise TikaConversionError(
                 msg, status_code=status, stack_trace=body.strip())
 
-        text = clean_extracted_plaintext(body, filename)
+        text = clean_extracted_plaintext(str(body), filename)
         return text
 
     def convert_local(self, document, filename=''):
@@ -156,7 +162,7 @@ class TikaConverter(object):
                             '-t', temp_file.name])
             try:
                 stdout, stderr = run_process(cmd)
-            except ProcessError, e:
+            except ProcessError as e:
                 msg = "Conversion with local Tika failed."
                 stack_trace = e.message
                 raise TikaConversionError(msg, stack_trace=stack_trace)
