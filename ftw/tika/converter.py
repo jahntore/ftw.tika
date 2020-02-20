@@ -133,14 +133,15 @@ class TikaConverter(object):
         if isinstance(document, basestring):
             document = StringIO(document)
 
-        headers = {'Accept': 'text/plain'}
+        headers = {'Accept': 'text/plain; charset=UTF-8'}
         timeout = self.config.timeout
         response = get_requests_session().put(tika_endpoint,
                                               data=document,
                                               headers=headers,
                                               timeout=timeout)
 
-        status, body = response.status_code, response.content
+        response.encoding = 'utf-8'
+        status, body = response.status_code, response.text
 
         if not status == 200:
             msg = ("Conversion with Tika JAXRS server failed "
@@ -148,7 +149,7 @@ class TikaConverter(object):
             raise TikaConversionError(
                 msg, status_code=status, stack_trace=body.strip())
 
-        text = clean_extracted_plaintext(str(body), filename)
+        text = clean_extracted_plaintext(body, filename)
         return text
 
     def convert_local(self, document, filename=''):
